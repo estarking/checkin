@@ -42,7 +42,7 @@ selenium 自动化 python 脚本必须先安装 chromium 及 chromium-chromedriv
 
 ## BinCloud
 
-适用于 56IDC，包含登陆保号、检测vps状态、停机自动自动功能。
+适用于 56IDC，包含登陆保号、检测vps状态、停机自动启动功能。
 
 ### 环境变量
 - `BC_COOKIES`: 56IDC 的Cookie（必需）
