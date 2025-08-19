@@ -152,21 +152,6 @@ def main():
 
     logging.info(f"✅ 已加载 {len(cookies_list)} 个账号的 Cookie")
 
-    # 浏览器配置
-    options = uc.ChromeOptions()
-    for arg in [
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-extensions",
-        "--disable-plugins-discovery",
-        "--disable-blink-features=AutomationControlled",
-        "--start-maximized",
-        "--headless=new",
-        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0 Safari/537.36"
-    ]:
-        options.add_argument(arg)
-
     base_url = "https://56idc.net"
 
     for account_idx, cookies in enumerate(cookies_list, start=1):
@@ -174,6 +159,22 @@ def main():
         logging.info(f"{'='*50}")
         logging.info(f"正在处理第 {account_idx} 个账号...")
         logging.info(f"{'='*50}")
+
+        # 浏览器配置
+        options = uc.ChromeOptions()
+        for arg in [
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-extensions",
+            "--disable-plugins-discovery",
+            "--disable-blink-features=AutomationControlled",
+            "--start-maximized",
+            "--headless=new",
+            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0 Safari/537.36"
+        ]:
+            options.add_argument(arg)
+        driver = None
 
         try:
             # 启动浏览器
