@@ -40,6 +40,13 @@ selenium 自动化 python 脚本必须先安装 chromium 及 chromium-chromedriv
 - `ARCTIC_USERNAME`: ARCTIC 的用户名（必需）
 - `ARCTIC_PASSWORD`: ARCTIC 的密码（必需）
 
+## BinCloud
+
+适用于 56IDC，包含登陆保号、检测vps状态、停机自动自动功能。
+
+### 环境变量
+- `BC_COOKIES`: 56IDC 的Cookie（必需）
+
 ## sfsy
 
 适用于顺丰app，包含签到、抽奖、蜂蜜任务等功能。
