@@ -81,32 +81,21 @@ def setup_browser():
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
     options.add_argument('--window-size=1920,1080')
-    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0 Safari/537.36')
-    options.add_argument('--disable-blink-features=AutomationControlled')
-    options.add_argument('--disable-extensions')
-    options.add_argument('--disable-infobars')
-    options.add_argument('--disable-popup-blocking')
     options.add_argument('--headless=new')
-    
-    log.debug("🌐 启动 Chrome（无头模式）...")
+    options.add_argument('--disable-blink-features=AutomationControlled')
+
     try:
         driver = uc.Chrome(
             options=options,
-            # driver_executable_path='/usr/bin/chromedriver',  # ❌ 删除这一行
-            # version_main=138,
-            use_subprocess=True,
-            version_main=None  # 确保不指定版本
+            version_main=None,  # ❌ 不指定版本，让 uc 自动检测系统 Chrome
+            use_subprocess=True
         )
         driver.set_window_size(1920, 1080)
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => false});")
-        driver.execute_script("window.chrome = { runtime: {} };")
-        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3]});")
-        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['zh-CN', 'zh']});")
-
         return driver
     except Exception as e:
         log.error(f"❌ 浏览器启动失败: {e}")
         return None
+
 
 def hover_checkin_button(driver):
     try:
