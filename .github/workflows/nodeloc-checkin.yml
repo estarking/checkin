@@ -20,6 +20,12 @@ jobs:
       - name: 🛎️ 检出代码
         uses: actions/checkout@v4
 
+      - name: 安装 Chrome 141
+        run: |
+          wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_141.0.7052.0-1_amd64.deb
+          sudo dpkg -i google-chrome-stable_141.0.7390.122-1_amd64.deb
+          sudo apt-get install -f -y
+
       - name: 🐍 设置 Python
         uses: actions/setup-python@v5
         with:
