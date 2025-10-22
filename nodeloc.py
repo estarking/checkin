@@ -93,7 +93,7 @@ def setup_browser():
             options=options,
             #driver_executable_path='/usr/bin/chromedriver',
             driver_executable_path=None,
-            version_main=138,
+            version_main=None,
             use_subprocess=True
         )
         driver.set_window_size(1920, 1080)
