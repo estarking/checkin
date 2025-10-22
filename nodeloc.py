@@ -94,7 +94,8 @@ def setup_browser():
             options=options,
             # driver_executable_path='/usr/bin/chromedriver',  # ❌ 删除这一行
             # version_main=138,
-            use_subprocess=True
+            use_subprocess=True,
+            version_main=None  # 确保不指定版本
         )
         driver.set_window_size(1920, 1080)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => false});")
