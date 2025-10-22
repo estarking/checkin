@@ -91,7 +91,8 @@ def setup_browser():
     try:
         driver = uc.Chrome(
             options=options,
-            driver_executable_path='/usr/bin/chromedriver',
+            #driver_executable_path='/usr/bin/chromedriver',
+            driver_executable_path=None,
             version_main=138,
             use_subprocess=True
         )
