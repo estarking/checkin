@@ -87,11 +87,12 @@ def setup_browser():
     options.add_argument('--disable-infobars')
     options.add_argument('--disable-popup-blocking')
     options.add_argument('--headless=new')
+    
     log.debug("🌐 启动 Chrome（无头模式）...")
     try:
         driver = uc.Chrome(
             options=options,
-            driver_executable_path='/usr/bin/chromedriver',
+            # driver_executable_path='/usr/bin/chromedriver',  # ❌ 删除这一行
             version_main=138,
             use_subprocess=True
         )
