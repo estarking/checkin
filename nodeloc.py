@@ -2,25 +2,29 @@
 # -------------------------------
 # @Author : github@wh1te3zzz
 # @Time   : 2025-09-01
-# NodeLoc 签到脚本
+# NodeLoc 签到脚本（支持Telegram推送）
 # -------------------------------
+
 """
 NodeLoc签到
-自行网页捉包提取请求头中的cookie和x-csrf-token填到变量 NLCookie 中,用#号拼接，多账号换行隔开
+自行网页捉包提取请求头中的cookie和x-csrf-token填到变量 NL_COOKIE 中,用#号拼接，多账号换行隔开
 export NL_COOKIE="_t=******; _forum_session=xxxxxx#XXXXXX"
+export TG_BOT_TOKEN="你的BotToken"
+export TG_USER_ID="你的UserID"
 
 cron: 59 8 * * *
-const $ = new Env("NodeLoc签到");
 """
 import os
 import time
 import logging
+import threading
 from datetime import datetime
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+import requests
 
 # ==================== 固定配置 ====================
 DOMAIN = "www.nodeloc.com"
@@ -29,7 +33,7 @@ CHECKIN_BUTTON_SELECTOR = 'li.header-dropdown-toggle.checkin-icon button.checkin
 USERNAME_SELECTOR = 'div.directory-table__row.me a[data-user-card]'  # 当前登录用户
 SCREENSHOT_DIR = "./photo"
 LOG_LEVEL = logging.INFO
-# =================================================
+# ===================================================
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 logging.basicConfig(
@@ -38,8 +42,37 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 log = logging.getLogger(__name__)
-
 results = []
+
+# ==================== Telegram 推送 ====================
+TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN", "")
+TG_USER_ID = os.getenv("TG_USER_ID", "")
+TG_API_HOST = os.getenv("TG_API_HOST", "https://api.telegram.org")
+
+def telegram_bot(title: str, content: str):
+    if not TG_BOT_TOKEN or not TG_USER_ID:
+        print("❌ Telegram 配置未设置，跳过推送")
+        return
+    url = f"{TG_API_HOST}/bot{TG_BOT_TOKEN}/sendMessage"
+    data = {
+        "chat_id": TG_USER_ID,
+        "text": f"{title}\n\n{content}",
+        "parse_mode": "HTML"
+    }
+    try:
+        resp = requests.post(url, data=data, timeout=10)
+        if resp.status_code == 200:
+            print(f"✅ Telegram 推送成功: {title}")
+        else:
+            print(f"❌ Telegram 推送失败: {resp.text}")
+    except Exception as e:
+        print(f"❌ Telegram 推送异常: {e}")
+
+def send(title: str, content: str):
+    t = threading.Thread(target=telegram_bot, args=(title, content))
+    t.start()
+    t.join()
+# ===================================================
 
 def generate_screenshot_path(prefix: str) -> str:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -91,7 +124,6 @@ def setup_browser():
     try:
         driver = uc.Chrome(
             options=options,
-            #driver_executable_path='/usr/bin/chromedriver',
             driver_executable_path=None,
             version_main=140,
             use_subprocess=True
@@ -101,12 +133,10 @@ def setup_browser():
         driver.execute_script("window.chrome = { runtime: {} };")
         driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3]});")
         driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['zh-CN', 'zh']});")
-
         return driver
     except Exception as e:
         log.error(f"❌ 浏览器启动失败: {e}")
         return None
-
 
 def hover_checkin_button(driver):
     try:
@@ -119,7 +149,7 @@ def hover_checkin_button(driver):
 
 def perform_checkin(driver, username: str):
     try:
-        driver.get("https://www.nodeloc.com/")
+        driver.get(HOME_URL)
         time.sleep(3)
         hover_checkin_button(driver)
         wait = WebDriverWait(driver, 10)
@@ -164,20 +194,22 @@ def perform_checkin(driver, username: str):
 def process_account(cookie_str: str):
     cookie = cookie_str.split("#", 1)[0].strip()
     if not cookie:
-        log.error("❌ Cookie 为空")
-        return "[❌] Cookie 为空"
+        msg = "[❌] Cookie 为空"
+        send("NodeLoc签到失败", msg)
+        return msg
 
     driver = None
     try:
         driver = setup_browser()
         if not driver:
-            return "[❌] 浏览器启动失败"
+            msg = "[❌] 浏览器启动失败"
+            send("NodeLoc签到失败", msg)
+            return msg
 
         log.info("🚀 正在打开用户列表页...")
         driver.get(HOME_URL)
         time.sleep(3)
 
-        log.debug("🍪 正在设置 Cookie...")
         for item in cookie.split(";"):
             item = item.strip()
             if not item or "=" not in item:
@@ -200,17 +232,26 @@ def process_account(cookie_str: str):
         time.sleep(5)
 
         if not check_login_status(driver):
-            return "[❌] 登录失败，Cookie 可能失效"
+            msg = "[❌] 登录失败，Cookie 可能失效"
+            send("NodeLoc签到失败", msg)
+            return msg
 
         username = get_username_from_user_page(driver)
         log.info(f"👤 当前用户: {username}")
 
         result = perform_checkin(driver, username)
+
+        if "成功" in result or "已签到" in result:
+            send("NodeLoc签到成功", result)
+        else:
+            send("NodeLoc签到失败", result)
+
         return result
 
     except Exception as e:
         msg = f"[🔥] 处理异常: {e}"
         log.error(msg)
+        send("NodeLoc签到异常", msg)
         return msg
     finally:
         if driver:
@@ -225,6 +266,7 @@ def main():
         msg = "❌ 未设置 NL_COOKIE 环境变量"
         print(msg)
         results.append(msg)
+        send("NodeLoc签到失败", msg)
         return
 
     raw_lines = os.environ.get("NL_COOKIE").strip().split("\n")
@@ -234,6 +276,7 @@ def main():
         msg = "❌ 未解析到有效 Cookie"
         print(msg)
         results.append(msg)
+        send("NodeLoc签到失败", msg)
         return
 
     log.info(f"✅ 查找到 {len(cookies)} 个账号，开始顺序签到...")
