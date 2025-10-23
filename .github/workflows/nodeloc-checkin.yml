@@ -44,6 +44,28 @@ jobs:
         run: |
           python nodeloc.py
 
+      - name: 📤 推送签到结果
+        if: always()   # 无论成功或失败都执行
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_USER_ID: ${{ secrets.TG_USER_ID }}
+          PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }}
+          PUSH_PLUS_USER: ${{ secrets.PUSH_PLUS_USER }}
+        run: |
+          echo "🔔 准备发送签到结果..."
+          if [ -f "notify.py" ]; then
+            python notify.py "NodeLoc 签到任务完成" "$(cat checkin.log)"
+          else
+            echo "⚠️ 未找到 notify.py，尝试直接发送 Telegram 推送"
+            if [ -n "${TG_BOT_TOKEN}" ] && [ -n "${TG_USER_ID}" ]; then
+              curl -s "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+                   -d chat_id="${TG_USER_ID}" \
+                   -d text="$(cat checkin.log | tail -n 40)"
+            else
+              echo "❌ 未配置推送方式，跳过通知。"
+            fi
+          fi
+
       - name: 📝 输出完成日志
         run: |
           echo "✅ 签到任务已完成，查看上方日志获取结果。"
