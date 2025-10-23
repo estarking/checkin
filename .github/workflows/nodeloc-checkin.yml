@@ -47,24 +47,19 @@ jobs:
           echo "✅ 签到脚本执行完毕，日志已保存到 checkin.log"
 
       - name: 📨 推送签到结果到 Telegram
+        run: |
+          python - <<EOF
+          import os
+          from notify import telegram_bot  # 假设你把上面函数保存为 notify.py
+
+          with open("checkin.log", "r", encoding="utf-8") as f:
+          content = f.read()
+
+          telegram_bot("NodeLoc 签到任务完成", content)
+          EOF
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_USER_ID: ${{ secrets.TG_USER_ID }}
-        run: |
-          python - <<EOF
-import os
-from notify import telegram_bot  # 确保你把 telegram_bot 函数放在 notify.py
-
-with open("checkin.log", "r", encoding="utf-8") as f:
-    content = f.read()
-
-# 从环境变量读取 TG 配置
-import push_config
-push_config["TG_BOT_TOKEN"] = os.environ.get("TG_BOT_TOKEN")
-push_config["TG_USER_ID"] = os.environ.get("TG_USER_ID")
-
-telegram_bot("NodeLoc 签到任务完成", content)
-EOF
 
       - name: 📝 输出完成日志
         run: |
