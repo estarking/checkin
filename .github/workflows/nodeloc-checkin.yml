@@ -43,23 +43,30 @@ jobs:
           WXPUSHER_APP_TOKEN: ${{ secrets.WXPUSHER_APP_TOKEN }}
         run: |
           echo "开始运行 NodeLoc 签到..."
-          python nodeloc.py > checkin.log 2>&1
+          python nodeloc.py | tee checkin.log
           echo "✅ 签到脚本执行完毕，日志已保存到 checkin.log"
 
-      - name: 📨 推送签到结果到 Telegram
-        run: |
-          python - <<EOF
-          import os
-          from notify import telegram_bot  # 假设你把上面函数保存为 notify.py
-
-          with open("checkin.log", "r", encoding="utf-8") as f:
-          content = f.read()
-
-          telegram_bot("NodeLoc 签到任务完成", content)
-          EOF
+      - name: 📤 推送签到结果
+        if: always()   # 无论成功或失败都执行
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_USER_ID: ${{ secrets.TG_USER_ID }}
+          PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }}
+          PUSH_PLUS_USER: ${{ secrets.PUSH_PLUS_USER }}
+        run: |
+          echo "🔔 准备发送签到结果..."
+          if [ -f "notify.py" ]; then
+            python notify.py "NodeLoc 签到任务完成" "$(cat checkin.log)"
+          else
+            echo "⚠️ 未找到 notify.py，尝试直接发送 Telegram 推送"
+            if [ -n "${TG_BOT_TOKEN}" ] && [ -n "${TG_USER_ID}" ]; then
+              curl -s "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+                   -d chat_id="${TG_USER_ID}" \
+                   -d text="$(cat checkin.log | tail -n 40)"
+            else
+              echo "❌ 未配置推送方式，跳过通知。"
+            fi
+          fi
 
       - name: 📝 输出完成日志
         run: |
