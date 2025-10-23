@@ -42,7 +42,9 @@ jobs:
           TG_USER_ID: ${{ secrets.TG_USER_ID }}
           WXPUSHER_APP_TOKEN: ${{ secrets.WXPUSHER_APP_TOKEN }}
         run: |
-          python nodeloc.py
+          echo "开始运行 NodeLoc 签到..."
+          python nodeloc.py | tee checkin.log
+          echo "✅ 签到脚本执行完毕，日志已保存到 checkin.log"
 
       - name: 📤 推送签到结果
         if: always()   # 无论成功或失败都执行
