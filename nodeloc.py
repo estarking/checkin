@@ -247,21 +247,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    try:
-        # 导入推送模块
-        from notify import send_notify, telegram_bot
-
-        # 拼接签到结果
-        message = "\n".join(results)
-        title = f"NodeLoc 自动签到结果（{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}）"
-
-        # 优先使用统一封装函数 send_notify（如果有）
-        if 'send_notify' in globals():
-            send_notify(title, message)
-        else:
-            # 否则手动调用几种常用推送方式
-            telegram_bot(title, message)
-
-        log.info("📢 已发送签到通知")
-    except Exception as e:
-        log.error(f"❌ 推送通知失败: {e}")
