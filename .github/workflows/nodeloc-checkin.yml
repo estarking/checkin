@@ -48,7 +48,6 @@ jobs:
           TG_USER_ID: ${{ secrets.TG_USER_ID }}
           WXPUSHER_APP_TOKEN: ${{ secrets.WXPUSHER_APP_TOKEN }}
         run: |
-          set -o pipefail
           python nodeloc.py 2>&1 | tee checkin.log
           
       - name: 📝 输出完成日志
