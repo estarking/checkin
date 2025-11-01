@@ -31,6 +31,12 @@ jobs:
           # 如果有 requirements.txt 可以启用下面这行
           pip install -r requirements.txt
 
+      # ✅ 修复 chromedriver 权限（关键新增）
+      - name: 🔧 修复 chromedriver 权限
+        run: |
+          sudo chmod +x /usr/bin/chromedriver || true
+          sudo chown $USER:$USER /usr/bin/chromedriver || true
+
       - name: 🏃 运行签到脚本
         env:
           NL_COOKIE: ${{ secrets.NL_COOKIE }}
