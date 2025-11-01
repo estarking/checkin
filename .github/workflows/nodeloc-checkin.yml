@@ -48,7 +48,44 @@ jobs:
           TG_USER_ID: ${{ secrets.TG_USER_ID }}
           WXPUSHER_APP_TOKEN: ${{ secrets.WXPUSHER_APP_TOKEN }}
         run: |
-          python nodeloc.py
+          set -o pipefail
+          python nodeloc.py 2>&1 | tee checkin.log
+
+      # 成功则用 notify.py 发送“成功”消息（会自动用 TG）
+      - name: 📣 通知（成功）
+        if: always() && steps.run_script.outcome == 'success'
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_USER_ID: ${{ secrets.TG_USER_ID }}
+        run: |
+          python - <<'PY'
+          import pathlib
+          from notify import send
+          log = pathlib.Path('checkin.log').read_text(encoding='utf-8', errors='ignore')
+          # 日志太长可截断
+          log = log[-3500:]
+          send("✅ NodeLoc 签到成功", log)
+          PY
+
+      # 失败则用 notify.py 发送“失败”消息并附带日志尾部
+      - name: 📣 通知（失败）
+        if: always() && steps.run_script.outcome != 'success'
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_USER_ID: ${{ secrets.TG_USER_ID }}
+        run: |
+          python - <<'PY'
+          import pathlib
+          from notify import send
+          log = pathlib.Path('checkin.log').read_text(encoding='utf-8', errors='ignore')
+          log = log[-3500:]
+          send("❌ NodeLoc 签到失败", log)
+          PY
+
+      # 让 Job 状态与脚本结果一致
+      - name: ⛔ 失败时退出
+        if: steps.run_script.outcome != 'success'
+        run: exit 1
 
       - name: 📝 输出完成日志
         run: |
