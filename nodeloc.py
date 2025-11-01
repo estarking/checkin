@@ -21,6 +21,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+from notify import send
+results = []  # 全局汇总
 
 # ==================== 固定配置 ====================
 DOMAIN = "www.nodeloc.com"
@@ -223,7 +225,11 @@ def main():
         msg = "❌ 未设置 NL_COOKIE 环境变量"
         print(msg)
         results.append(msg)
-        return
+        # 早退也推送
+        try:
+            send("NodeLoc 签到结果", "\n".join(results))
+        finally:
+            return
 
     raw_lines = os.environ.get("NL_COOKIE").strip().split("\n")
     cookies = [line.strip() for line in raw_lines if line.strip()]
@@ -232,65 +238,30 @@ def main():
         msg = "❌ 未解析到有效 Cookie"
         print(msg)
         results.append(msg)
-        return
+        # 早退也推送
+        try:
+            send("NodeLoc 签到结果", "\n".join(results))
+        finally:
+            return
 
     log.info(f"✅ 查找到 {len(cookies)} 个账号，开始顺序签到...")
 
     for cookie_str in cookies:
+        # 你原有的处理函数：返回形如“✅ xxx 签到成功”或“❌ xxx 签到失败: …”
         result = process_account(cookie_str)
         results.append(result)
         time.sleep(5)
 
     log.info("✅ 全部签到完成")
 
-if __name__ == '__main__':
-    import sys, io, traceback
-    from notify import send  # 引用你已有的 notify.py
-
-    # --- 日志捕获 ---
-    class Tee(io.TextIOBase):
-        def __init__(self, *streams): self.streams = streams
-        def write(self, s):
-            for st in self.streams:
-                st.write(s)
-            return len(s)
-        def flush(self):
-            for st in self.streams:
-                try: st.flush()
-                except: pass
-
-    buf_out, buf_err = io.StringIO(), io.StringIO()
-    sys.stdout = Tee(sys.stdout, buf_out)
-    sys.stderr = Tee(sys.stderr, buf_err)
-
-    exit_code = 0
-    title = "✅ NodeLoc 签到成功"
-
+    # ✅ 统一汇总推送（TG_BOT_TOKEN / TG_USER_ID 已在 Actions secrets 中时会自动走 TG）
+    summary = "\n".join(results) if results else "（无可用结果）"
     try:
-        # 调用主函数
-        rc = main()
-        if isinstance(rc, int):
-            exit_code = rc
-    except SystemExit as e:
-        exit_code = int(e.code) if e.code is not None else 0
-    except Exception:
-        print(traceback.format_exc())
-        exit_code = 1
-
-    # --- 结果判断 ---
-    if exit_code != 0:
-        title = "❌ NodeLoc 签到失败"
-
-    # --- 整理日志并发送通知 ---
-    log = (buf_out.getvalue() + "\n" + buf_err.getvalue()).strip()
-    log = log[-3500:]  # 截断太长的日志
-
-    try:
-        send(title, log)
+        send("NodeLoc 签到结果", summary)
     except Exception as e:
-        print(f"[WARN] 通知发送失败: {e}")
+        # 推送失败不影响主流程
+        log.warning(f"通知发送失败: {e}")
 
-    # --- 恢复并退出 ---
-    sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
-    sys.exit(exit_code)
+if __name__ == '__main__':
+    main()
 
