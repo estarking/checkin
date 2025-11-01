@@ -244,4 +244,53 @@ def main():
     log.info("✅ 全部签到完成")
 
 if __name__ == '__main__':
-    main()
+    import sys, io, traceback
+    from notify import send  # 引用你已有的 notify.py
+
+    # --- 日志捕获 ---
+    class Tee(io.TextIOBase):
+        def __init__(self, *streams): self.streams = streams
+        def write(self, s):
+            for st in self.streams:
+                st.write(s)
+            return len(s)
+        def flush(self):
+            for st in self.streams:
+                try: st.flush()
+                except: pass
+
+    buf_out, buf_err = io.StringIO(), io.StringIO()
+    sys.stdout = Tee(sys.stdout, buf_out)
+    sys.stderr = Tee(sys.stderr, buf_err)
+
+    exit_code = 0
+    title = "✅ NodeLoc 签到成功"
+
+    try:
+        # 调用主函数
+        rc = main()
+        if isinstance(rc, int):
+            exit_code = rc
+    except SystemExit as e:
+        exit_code = int(e.code) if e.code is not None else 0
+    except Exception:
+        print(traceback.format_exc())
+        exit_code = 1
+
+    # --- 结果判断 ---
+    if exit_code != 0:
+        title = "❌ NodeLoc 签到失败"
+
+    # --- 整理日志并发送通知 ---
+    log = (buf_out.getvalue() + "\n" + buf_err.getvalue()).strip()
+    log = log[-3500:]  # 截断太长的日志
+
+    try:
+        send(title, log)
+    except Exception as e:
+        print(f"[WARN] 通知发送失败: {e}")
+
+    # --- 恢复并退出 ---
+    sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
+    sys.exit(exit_code)
+
