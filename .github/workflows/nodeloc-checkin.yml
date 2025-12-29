@@ -3,7 +3,7 @@ name: NodeLoc 自动签到
 on:
   schedule:
     # 每天 02:00 UTC 运行（即北京时间 10:00）
-    - cron: '9 2 * * *'
+    - cron: '9 1 * * *'
   workflow_dispatch:  # 允许手动触发
     inputs:
       debug:
