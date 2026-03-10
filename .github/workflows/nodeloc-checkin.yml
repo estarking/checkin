@@ -53,3 +53,12 @@ jobs:
       - name: 📝 输出完成日志
         run: |
           echo "✅ 签到任务已完成，查看上方日志获取结果。"
+      
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodeloc-debug
+          path: |
+            photo/**
+            checkin.log
